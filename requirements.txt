@@ -1,0 +1,4 @@
+# Python dependencies for AI SNS generator
+google-generativeai>=0.3.0
+feedparser>=6.0.10
+python-dateutil>=2.8.2

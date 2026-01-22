@@ -1,0 +1,58 @@
+name: AI SNS Content Generator
+
+on:
+  schedule:
+    # Run every 60 minutes (at the top of the hour)
+    - cron: '0 * * * *'
+
+  # Allow manual trigger for testing
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "AI SNS Bot"
+
+      - name: Run content generator
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          python scripts/generator.py
+
+      - name: Commit and push changes
+        run: |
+          git add docs/data.json
+
+          # Only commit if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            PERSONA=$(python -c "import json; data=json.load(open('docs/data.json')); print(data[0]['user_name'] if data else 'Unknown')")
+            git commit -m "🤖 New post from ${PERSONA}"
+            git push
+          fi
